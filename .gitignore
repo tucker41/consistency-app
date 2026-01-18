@@ -1,2 +1,11 @@
 .env
 **/.env
+
+# IntelliJ
+.idea/
+*.iml
+**/.idea/
+**/*.iml
+
+# Maven
+**/target/
