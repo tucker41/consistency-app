@@ -4,15 +4,15 @@ services:
     container_name: consistency-app-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: consistency_app
-      POSTGRES_USER: consistency
-      POSTGRES_PASSWORD: consistency_pw
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
       - consistency_app_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U consistency -d consistency_app"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 20
