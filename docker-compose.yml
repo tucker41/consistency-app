@@ -1,0 +1,37 @@
+services:
+  db:
+    image: postgres:16
+    container_name: consistency-app-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: consistency_app
+      POSTGRES_USER: consistency
+      POSTGRES_PASSWORD: consistency_pw
+    ports:
+      - "5432:5432"
+    volumes:
+      - consistency_app_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U consistency -d consistency_app"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: consistency-app-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - consistency_app_pgadmin:/var/lib/pgadmin
+
+volumes:
+  consistency_app_pgdata:
+  consistency_app_pgadmin:
