@@ -2,6 +2,7 @@ package com.consistencyapp.backend.security;
 
 import com.consistencyapp.backend.security.jwt.JwtProperties;
 import com.consistencyapp.backend.security.jwt.JwtService;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -28,6 +29,16 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                .exceptionHandling(ex -> ex
+                        // Unauthenticated -> 401
+                        .authenticationEntryPoint((request, response, authException) ->
+                                response.sendError(HttpServletResponse.SC_UNAUTHORIZED))
+                        // Authenticated but forbidden -> 403
+                        .accessDeniedHandler((request, response, accessDeniedException) ->
+                                response.sendError(HttpServletResponse.SC_FORBIDDEN))
+                )
+
                 .authorizeHttpRequests(auth -> auth
                         // Preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
@@ -35,8 +46,12 @@ public class SecurityConfig {
                         // Public
                         .requestMatchers("/api/health", "/api/auth/**").permitAll()
 
-                        // Protected
+                        // Admin-only
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+                        // Protected (any logged-in user)
                         .requestMatchers("/api/users/**").authenticated()
+
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(new JwtAuthFilter(jwtService), UsernamePasswordAuthenticationFilter.class)

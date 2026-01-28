@@ -9,10 +9,12 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class JwtAuthFilter extends OncePerRequestFilter {
@@ -34,6 +36,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         if (header != null && header.startsWith("Bearer ")) {
             var token = header.substring("Bearer ".length()).trim();
+            if (token.isEmpty()) {
+                SecurityContextHolder.clearContext();
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Missing bearer token");
+                return;
+            }
 
             try {
                 Claims claims = jwtService.parseAndValidate(token);
@@ -43,18 +50,35 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     String email = claims.get("email", String.class);
                     String displayName = claims.get("displayName", String.class);
 
+                    List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+                    List<?> rolesRaw = claims.get("roles", List.class);
+
+                    if (rolesRaw != null) {
+                        for (Object r : rolesRaw) {
+                            if (r == null) continue;
+                            String role = r.toString().trim();
+                            if (role.isEmpty()) continue;
+
+                            if (!role.startsWith("ROLE_")) role = "ROLE_" + role;
+
+                            authorities.add(new SimpleGrantedAuthority(role));
+                        }
+                    }
+
                     var principal = new AuthenticatedUser(userId, email, displayName);
 
                     var auth = new UsernamePasswordAuthenticationToken(
                             principal,
                             null,
-                            List.of()
+                            authorities
                     );
 
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 }
-            } catch (Exception ignored) {
-                // Invalid token -> no auth set; SecurityConfig will enforce auth where required
+            } catch (Exception e) {
+                SecurityContextHolder.clearContext();
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired token");
+                return;
             }
         }
 
