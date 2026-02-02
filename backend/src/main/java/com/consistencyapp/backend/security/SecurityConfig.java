@@ -4,6 +4,7 @@ import com.consistencyapp.backend.security.jwt.JwtProperties;
 import com.consistencyapp.backend.security.jwt.JwtService;
 import jakarta.servlet.http.HttpServletResponse;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,6 +17,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -24,11 +26,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtService jwtService) throws Exception {
-        return http
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtService jwtService, ObjectProvider<ClientRegistrationRepository> clientRegistrationRepositoryProvider) throws Exception {
+        http
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
-                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
 
                 .exceptionHandling(ex -> ex
                         // Unauthenticated -> 401
@@ -45,17 +47,26 @@ public class SecurityConfig {
 
                         // Public
                         .requestMatchers("/api/health", "/api/auth/**").permitAll()
+                        .requestMatchers("/api/auth/**").permitAll()
+
+                        // OAuth2 endpoints used by Spring Security during login
+                        .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
 
                         // Admin-only
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
                         // Protected (any logged-in user)
-                        .requestMatchers("/api/users/**").authenticated()
+                        .requestMatchers("/api/**").authenticated()
 
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(new JwtAuthFilter(jwtService), UsernamePasswordAuthenticationFilter.class)
-                .build();
+                .addFilterBefore(new JwtAuthFilter(jwtService), UsernamePasswordAuthenticationFilter.class);
+
+        if (clientRegistrationRepositoryProvider.getIfAvailable() != null) {
+            http.oauth2Login(oauth -> oauth.defaultSuccessUrl("/api/auth/oauth2/success", true));
+        }
+
+        return http.build();
     }
 
     @Bean

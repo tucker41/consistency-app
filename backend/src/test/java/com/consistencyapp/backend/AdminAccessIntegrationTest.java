@@ -41,7 +41,7 @@ class AdminAccessIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void adminPing_userToken_returns403_adminToken_returns200() throws Exception {
-        var registerReq = new RegisterRequest("roleuser@example.com", "password123", "RoleUser");
+        var registerReq = new RegisterRequest("roleuser@example.com", "password123", "RoleUser", "Role User");
 
         var registerResult = mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)

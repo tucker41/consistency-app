@@ -29,6 +29,7 @@ class AuthFlowIntegrationTest extends AbstractIntegrationTest {
         var registerReq = new RegisterRequest(
                 "Jack@Example.com",
                 "password123",
+                "Jack",
                 "Jack"
         );
 
@@ -69,7 +70,7 @@ class AuthFlowIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void register_duplicateEmail_returns409() throws Exception {
-        var req = new RegisterRequest("dup@example.com", "password123", "Dup User");
+        var req = new RegisterRequest("dup@example.com", "password123", "Dup_User", "Dup User");
 
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -85,7 +86,7 @@ class AuthFlowIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void login_wrongPassword_returns401() throws Exception {
-        var registerReq = new RegisterRequest("wrongpass@example.com", "password123", "WP");
+        var registerReq = new RegisterRequest("wrongpass@example.com", "password123", "wp_user", "WP");
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON
                         )
