@@ -1,4 +1,4 @@
-package com.consistencyapp.backend.health;
+package com.consistencyapp.backend.controller.health;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
